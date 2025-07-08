@@ -1,4 +1,4 @@
-# Cup 🫖
+# Cup 🫖 — The Cascading Markup Language
 
 **Cup** is a lightweight, flexible, and elegant templating engine written in
 [V](https://vlang.io). It combines the structure of **HTML**, the cascading
