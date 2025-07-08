@@ -1,10 +1,9 @@
-# Caskup — HTML/CSS-Inspired Syntax Template Rendering Engine (in [V](https://vlang.io))
+# Cup 🫖 — An Innovative HTML/CSS/JS-Inspired Templating Engine in [V](https://vlang.io)
 
-**Caskup** is a lightweight, flexible and elegant **template rendering engine**
-written in [V](https://vlang.io).  
-It combines the structure of **HTML**, the cascading power of **CSS**,
-and the interactivity of **JavaScript** into a single,
-clean and expressive syntax — without sacrificing compatibility.
+**Cup** is a lightweight, flexible, and elegant templating engine written in
+[V](https://vlang.io). It combines the structure of **HTML**, the cascading
+power of **CSS**, and the interactivity of **JavaScript/TypeScript** into a
+single, clean, and expressive syntax — without sacrificing compatibility.
 
 > ✨ **Write once. Render fast. See clearly.**
 
@@ -12,13 +11,14 @@ clean and expressive syntax — without sacrificing compatibility.
 
 ## 🚀 Features
 
-- ✅ **HTML/CSS/JS-inspired syntax** — fully compatible with standard tags and attributes
-- 💡 **Cascading and nested blocks** — like CSS, but across markup and logic
-- 🧠 **Scoped styles and inline logic** — embedded behavior within elements
+- ✅ **HTML/CSS/JS-inspired syntax** — fully compatible with standard tags and
+  attributes  
+- 💡 **Cascading and nested blocks** — like CSS, but across markup and logic  
+- 🧠 **Scoped styles and inline logic** — embed behavior within elements  
 - 🔄 **Dynamic templating** — simple conditionals, loops,
-and reactive variables (planned)
-- ⚙️ **Transpiles to pure HTML/CSS/JS** — no runtime dependencies
-- 🦕 **Built in V** — minimal, blazing fast, cross-platform
+and reactive variables (planned)  
+- ⚙️ **Transpiles to pure HTML/CSS/JS** — no runtime dependencies  
+- 🦕 **Built in V** — minimal, blazing fast, cross-platform  
 
 ---
 
@@ -27,13 +27,13 @@ and reactive variables (planned)
 ### Using VPM (V Package Manager)
 
 ```bash
-v install siguici.caskup
+v install siguici.cup
 ````
 
 Or directly from GitHub:
 
 ```bash
-v install github.com/siguici/caskup
+v install github.com/siguici/cup
 ```
 
 ---
@@ -57,7 +57,7 @@ button {
   }
   script {
     this.addEventListener('click', () => {
-      alert("Hello from Caskup!")
+      alert("Hello from Cup!")
     })
   }
 }
@@ -66,7 +66,7 @@ button {
 Compiles to:
 
 ```html
-<button onclick="alert('Hello from Caskup!')" style="background:#7878ff;color:white;padding:1em;border-radius:8px;">
+<button onclick="alert('Hello from Cup!')" style="background:#7878ff;color:white;padding:1em;border-radius:8px;">
   Click me
 </button>
 ```
@@ -76,10 +76,10 @@ Compiles to:
 ## 🔧 Usage in V
 
 ```v
-import siguici.caskup
+import siguici.cup
 
 fn main() {
-  html := caskup.render_file('examples/hello.cup') or {
+  html := cup.render_file('examples/hello.cup') or {
     eprintln('Error: $err')
     return
   }
@@ -91,20 +91,20 @@ fn main() {
 
 ## 🗺️ Roadmap
 
-* [x] Basic lexer/parser
-* [x] Embedded style and script blocks
-* [x] HTML transpilation
-* [ ] Conditionals (`@if`, `@else`)
-* [ ] Loops (`@for`, `@each`)
-* [ ] Reactive variables (`@var`, `@watch`)
-* [ ] Live preview / runtime renderer (optional)
-* [ ] Plugin system
+- [x] Basic lexer/parser
+- [x] Embedded style and script blocks
+- [x] HTML transpilation
+- [ ] Conditionals (`@if`, `@else`)
+- [ ] Loops (`@for`, `@each`)
+- [ ] Reactive variables (`@var`, `@watch`)
+- [ ] Live preview / runtime renderer (optional)
+- [ ] Plugin system
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests, feedback, ideas and questions are welcome!
+Pull requests, feedback, ideas, and questions are welcome!
 
 > **To contribute:**
 >
