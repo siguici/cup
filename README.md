@@ -1,4 +1,4 @@
-# Cup 🫖 — An Innovative HTML/CSS/JS-Inspired Templating Engine in [V](https://vlang.io)
+# Cup 🫖
 
 **Cup** is a lightweight, flexible, and elegant templating engine written in
 [V](https://vlang.io). It combines the structure of **HTML**, the cascading
