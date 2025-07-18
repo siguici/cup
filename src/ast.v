@@ -8,8 +8,8 @@ pub enum NodeType {
 pub struct Node {
 pub mut:
 	node_type NodeType
-	name      string // tag name
+	name      string
 	attrs     map[string]string
 	children  []Node
-	content   string // for text, script, style
+	content   string
 }
