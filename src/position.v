@@ -1,4 +1,5 @@
 pub struct Position {
+mut:
 	file   string
 	offset int
 	line   int
@@ -13,7 +14,7 @@ pub struct PositionOptions {
 	column int
 }
 
-pub fn (this Position) advance(c byte) Position {
+pub fn (mut this Position) advance(c byte) Position {
 	this.offset += 1
 	if c == `\n` {
 		this.line += 1
