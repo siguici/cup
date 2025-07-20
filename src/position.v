@@ -14,7 +14,7 @@ pub struct PositionOptions {
 	column int
 }
 
-pub fn (mut this Position) advance(c byte) Position {
+pub fn (mut this Position) advance(c u8) Position {
 	this.offset += 1
 	if c == `\n` {
 		this.line += 1
