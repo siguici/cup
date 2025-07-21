@@ -41,8 +41,8 @@ pub fn run_file(file string) {
 }
 
 pub fn run_code(opts RunOptions) {
-	lines := tokenize(opts.code)
-	nodes := parse(lines)
-	html := render(nodes)
-	dump(html)
+	tokens := tokenize(input: opts.code, file: opts.file)
+	// nodes := parse(lines)
+	// html := render(nodes)
+	dump(tokens)
 }

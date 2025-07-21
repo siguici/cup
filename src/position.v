@@ -14,33 +14,33 @@ pub struct PositionOptions {
 	column int
 }
 
-pub fn (mut this Position) advance(c u8) Position {
-	this.offset += 1
+pub fn (mut p Position) advance(c u8) Position {
+	p.offset += 1
 	if c == `\n` {
-		this.line += 1
-		this.column = 1
+		p.line += 1
+		p.column = 1
 	} else {
-		this.column += 1
+		p.column += 1
 	}
-	return this
+	return p
 }
 
-pub fn (this Position) str() string {
+pub fn (p Position) str() string {
 	mut str := ''
-	if this.file != '' {
-		str += this.file + ':'
+	if p.file != '' {
+		str += p.file + ':'
 	}
-	return '${str}${this.line}:${this.column}'
+	return '${str}${p.line}:${p.column}'
 }
 
-pub fn (this Position) is_valid() bool {
-	return this.line > 0 && this.column > 0
+pub fn (p Position) is_valid() bool {
+	return p.line > 0 && p.column > 0
 }
 
-pub fn Position.new(options PositionOptions) Position {
-	return Position{options.file, options.offset, options.line, options.column}
+pub fn Position.new(o PositionOptions) Position {
+	return new_position(o)
 }
 
-pub fn new_position(options PositionOptions) Position {
-	return Position.new(options)
+pub fn new_position(o PositionOptions) Position {
+	return Position{o.file, o.offset, o.line, o.column}
 }

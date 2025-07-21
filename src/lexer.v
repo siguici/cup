@@ -1,250 +1,363 @@
 module main
 
-import strings
+import strings.textscanner
 
 @[params]
 pub struct LexerOptions {
-	input  string
+	input string
+	file  string
+	dir   string
+}
+
+@[noinit]
+pub struct Lexer {
+	textscanner.TextScanner
+pub mut:
 	file   string
-	offset int
 	line   int = 1
 	column int = 1
 }
 
-pub struct Lexer {
-	input string
-mut:
-	pos         Position
-	ch          u8 = `\0`
-	tokens      []Token
-	input_len   int
-	input_index int
+pub fn Lexer.new(o LexerOptions) Lexer {
+	return new_lexer(o)
 }
 
-pub fn lex(opts LexerOptions) []Token {
-	mut l := new_lexer(opts)
+pub fn new_lexer(o LexerOptions) Lexer {
+	return Lexer{
+		TextScanner: textscanner.new(o.input)
+		file:        o.file
+	}
+}
+
+pub fn tokenize(options LexerOptions) []Token {
+	mut l := new_lexer(
+		input: options.input
+		file:  options.file
+	)
 
 	return l.lex()
 }
 
-pub fn new_lexer(opts LexerOptions) Lexer {
-	mut l := Lexer{
-		input:       opts.input
-		pos:         Position{
-			file:   opts.file
-			offset: opts.offset
-			line:   opts.line
-			column: opts.column
-		}
-		input_len:   opts.input.len
-		input_index: 0
+pub fn (mut l Lexer) lex() []Token {
+	mut t := []Token{}
+
+	for l.next() != -1 && l.pos != l.ilen {
+		t << l.scan()
 	}
-	l.ch = l.read_char()
-	return l
+
+	return t
 }
 
-fn (mut this Lexer) read_char() u8 {
-	if this.input_index >= this.input_len {
-		return `\0`
-	}
-	ch := this.input[this.input_index]
-	this.input_index++
-	this.pos.advance(ch)
-	return ch
+pub fn (mut l Lexer) next_line() int {
+	l.skip_line()
+	return l.next()
 }
 
-fn (this Lexer) peek_char() u8 {
-	if this.input_index >= this.input_len {
-		return `\0`
-	}
-	return this.input[this.input_index]
+pub fn (mut l Lexer) next_column() int {
+	l.skip_column()
+	return l.next()
 }
 
-pub fn (mut this Lexer) add_token(typ TokenType, val string, pos Position) {
-	this.tokens << new_token(typ, val, pos)
+pub fn (mut l Lexer) skip_line() {
+	l.line++
+	l.column = 1
 }
 
-pub fn (mut this Lexer) skip_whitespace() {
-	for this.ch == ` ` || this.ch == `\t` || this.ch == `\n` || this.ch == `\r` {
-		this.ch = this.read_char()
-	}
+pub fn (mut l Lexer) skip_column() {
+	l.column++
 }
 
-pub fn (mut this Lexer) lex() []Token {
-	for this.ch != `\0` {
-		pos_start := this.pos
-		match this.ch {
-			`<` {
-				if this.peek_char() == `/` {
-					this.read_char() // consume '/'
-					this.add_token(.tag_end, '</', pos_start)
-					this.ch = this.read_char()
-				} else if this.peek_char() == `!` {
-					// Maybe comment or doctype
-					if this.input[this.input_index..].starts_with('!--') {
-						this.read_char() // consume '!'
-						this.read_char() // consume '-'
-						this.read_char() // consume '-'
-						this.scan_comment(pos_start)
-					} else if this.input[this.input_index..].starts_with('DOCTYPE')
-						|| this.input[this.input_index..].starts_with('doctype') {
-						this.scan_doctype(pos_start)
-					} else {
-						this.add_token(.tag_open, '<', pos_start)
-						this.ch = this.read_char()
-					}
-				} else if this.peek_char() == `>` {
-					this.read_char() // consume '>'
-					this.add_token(.tag_self_close, '/>', pos_start)
-					this.ch = this.read_char()
-				} else {
-					this.add_token(.tag_open, '<', pos_start)
-					this.ch = this.read_char()
-				}
-			}
-			`>` {
-				this.add_token(.tag_close, '>', pos_start)
-				this.ch = this.read_char()
-			}
-			`/` {
-				if this.peek_char() == `>` {
-					this.read_char()
-					this.add_token(.tag_self_close, '/>', pos_start)
-					this.ch = this.read_char()
-				} else {
-					this.add_token(.unknown, '/', pos_start)
-					this.ch = this.read_char()
-				}
-			}
-			`=` {
-				this.add_token(.equal, '=', pos_start)
-				this.ch = this.read_char()
-			}
-			`{` {
-				this.add_token(.lcbr, '{', pos_start)
-				this.ch = this.read_char()
-			}
-			`}` {
-				this.add_token(.rcbr, '}', pos_start)
-				this.ch = this.read_char()
-			}
-			`(` {
-				this.add_token(.lpar, '(', pos_start)
-				this.ch = this.read_char()
-			}
-			`)` {
-				this.add_token(.rpar, ')', pos_start)
-				this.ch = this.read_char()
-			}
-			`[` {
-				this.add_token(.lsbr, '[', pos_start)
-				this.ch = this.read_char()
-			}
-			`]` {
-				this.add_token(.rsbr, ']', pos_start)
-				this.ch = this.read_char()
-			}
-			`@` {
-				this.add_token(.at, '@', pos_start)
-				this.ch = this.read_char()
-			}
-			`&` {
-				this.add_token(.amp, '&', pos_start)
-				this.ch = this.read_char()
-			}
-			`'`, `"` {
-				this.scan_string()
-			}
-			`0`...`9` {
-				this.scan_number()
-			}
-			` `, `\t`, `\r`, `\n` {
-				this.skip_whitespace()
-			}
-			else {
-				if is_name_start_char(this.ch) {
-					this.scan_name()
-				} else {
-					this.add_token(.unknown, this.ch.ascii_str(), pos_start)
-					this.ch = this.read_char()
-				}
-			}
-		}
-	}
-	this.add_token(.eof, '', this.pos)
-	return this.tokens
+pub fn (mut l Lexer) skip_line_n(n int) {
+	l.line += n
+	l.column = 1
 }
 
-fn is_name_start_char(ch u8) bool {
-	return (ch >= `a` && ch <= `z`) || (ch >= `A` && ch <= `Z`) || ch == `_` || ch == `:`
+pub fn (mut l Lexer) skip_column_n(n int) {
+	l.column += n
 }
 
-fn is_name_char(ch u8) bool {
-	return is_name_start_char(ch) || (ch >= `0` && ch <= `9`) || ch == `-` || ch == `.`
-}
-
-fn (mut this Lexer) scan_name() {
-	pos_start := this.pos
-	mut name := strings.new_builder(32)
-	for is_name_char(this.ch) {
-		name.write_u8(this.ch)
-		this.ch = this.read_char()
-	}
-	this.add_token(.name, name.str(), pos_start)
-}
-
-fn (mut this Lexer) scan_string() {
-	pos_start := this.pos
-	quote := this.ch
-	mut str_val := strings.new_builder(32)
-	this.ch = this.read_char() // consume quote
-	for this.ch != quote && this.ch != `\0` {
-		str_val.write_u8(this.ch)
-		this.ch = this.read_char()
-	}
-	this.ch = this.read_char() // consume closing quote
-	this.add_token(.string, str_val.str(), pos_start)
-}
-
-fn (mut this Lexer) scan_number() {
-	pos_start := this.pos
-	mut num_str := strings.new_builder(16)
-	for this.ch >= `0` && this.ch <= `9` {
-		num_str.write_u8(this.ch)
-		this.ch = this.read_char()
-	}
-	if this.ch == `.` {
-		num_str.write_u8(this.ch)
-		this.ch = this.read_char()
-		for this.ch >= `0` && this.ch <= `9` {
-			num_str.write_u8(this.ch)
-			this.ch = this.read_char()
-		}
-		this.add_token(.float, num_str.str(), pos_start)
+pub fn (mut l Lexer) scan_char() u8 {
+	c := if l.current_u8() == `\n` {
+		l.next_line()
 	} else {
-		this.add_token(.int, num_str.str(), pos_start)
+		l.next_column()
 	}
+	return u8(c)
 }
 
-fn (mut this Lexer) scan_comment(start_pos Position) {
-	mut comment := strings.new_builder(64)
-	for !(this.ch == `-` && this.peek_char() == `-` && this.input[this.input_index] == `>`)
-		&& this.ch != `\0` {
-		comment.write_u8(this.ch)
-		this.ch = this.read_char()
+pub fn (mut l Lexer) scan() Token {
+	mut c := l.current_u8()
+
+	match c {
+		0 {
+			return l.emit(.eof)
+		}
+		`<` {
+			c = l.scan_char()
+			if c == `/` {
+				return l.emit(.tag_end)
+			}
+			return l.emit(.tag_open)
+		}
+		`>` {
+			l.scan_char()
+			return l.emit(.tag_close)
+		}
+		`/` {
+			c = l.scan_char()
+			if c == `>` {
+				l.scan_char()
+				return l.emit(.tag_self_close)
+			}
+			return l.emit_lexeme(.unknown, '/')
+		}
+		`=` {
+			l.scan_char()
+			return l.emit(.equal)
+		}
+		`"`, `'` {
+			ss := l.scan_string(l.current())
+			return l.emit_lexeme(.string, ss)
+		}
+		`\n` {
+			l.scan_char()
+			return l.emit(.nl)
+		}
+		`{` {
+			l.scan_char()
+			return l.emit(.lcbr)
+		}
+		`}` {
+			l.scan_char()
+			return l.emit(.rcbr)
+		}
+		`(` {
+			l.scan_char()
+			return l.emit(.lpar)
+		}
+		`)` {
+			l.scan_char()
+			return l.emit(.rpar)
+		}
+		`[` {
+			l.scan_char()
+			return l.emit(.lsbr)
+		}
+		`]` {
+			l.scan_char()
+			return l.emit(.rsbr)
+		}
+		else {
+			sp := l.scan_whitespace()
+			if sp.len >= 1 {
+				l.pos--
+				return l.emit_lexeme(.whitespace, sp)
+			}
+
+			nb := l.scan_number()
+			if nb.len >= 1 {
+				l.pos--
+				return l.emit_lexeme(.number, nb)
+			}
+
+			id := l.scan_identifier()
+			if id.len >= 1 {
+				l.pos--
+				return l.emit_lexeme(.name, id)
+			}
+		}
 	}
-	this.read_char() // '-'
-	this.read_char() // '>'
-	this.add_token(.comment, comment.str(), start_pos)
-	this.ch = this.read_char()
+
+	return l.emit_lexeme(.unknown, c.ascii_str())
 }
 
-fn (mut this Lexer) scan_doctype(start_pos Position) {
-	mut doctype := strings.new_builder(64)
-	for !(this.ch == `>`) && this.ch != `\0` {
-		doctype.write_u8(this.ch)
-		this.ch = this.read_char()
+pub fn (mut l Lexer) scan_string(quote int) string {
+	l.next_column()
+	mut v := ''
+	mut end := false
+
+	for l.pos < l.ilen {
+		if l.current() == quote && l.peek_back() != `\\` {
+			end = true
+			break
+		}
+		if l.current() == `\\` {
+			v += match l.peek_u8() {
+				`n` {
+					'\n'
+				}
+				`r` {
+					'\r'
+				}
+				`t` {
+					'\t'
+				}
+				`\\` {
+					'\\'
+				}
+				u8(quote) {
+					u8(quote).ascii_str()
+				}
+				else {
+					panic('Cannot escape ${l.peek_str()}')
+				}
+			}
+			l.column += 2
+			l.next()
+			l.next()
+			continue
+		}
+		if l.current_is_new_line() {
+			l.skip_line()
+		} else {
+			l.skip_column()
+		}
+		v += l.current_str()
+		l.next()
 	}
-	this.add_token(.doctype, doctype.str(), start_pos)
-	this.ch = this.read_char()
+
+	if !end {
+		panic('End of string ${quote} expected')
+	}
+
+	return v
+}
+
+pub fn (mut l Lexer) scan_whitespace() string {
+	mut w := ''
+
+	for l.pos < l.ilen && l.current_is_space() {
+		w += l.current_str()
+		if l.current_is_new_line() {
+			l.line++
+			l.column = 1
+		} else {
+			l.column++
+		}
+		l.next()
+	}
+
+	return w
+}
+
+pub fn (mut l Lexer) scan_number() string {
+	return l.scan_int() + l.scan_float()
+}
+
+pub fn (mut l Lexer) scan_int() string {
+	mut i := ''
+
+	for l.pos < l.ilen && l.current_is_digit() {
+		i += l.current_str()
+		l.column++
+		l.next()
+	}
+
+	return i
+}
+
+pub fn (mut l Lexer) scan_float() string {
+	mut d := ''
+
+	if l.current_is_dot() && l.peek_is_digit() {
+		d += l.current_str()
+		l.column++
+		for l.pos < l.ilen && l.peek_is_digit() {
+			d += l.peek_str()
+			l.column++
+			l.next()
+		}
+	}
+
+	return d
+}
+
+pub fn (mut l Lexer) scan_identifier() string {
+	mut id := ''
+
+	for l.pos < l.ilen && (l.current_is_dash() || l.current_is_letter()) {
+		id += l.current_str()
+		l.next_column()
+	}
+
+	if l.current_is_digit() {
+		for l.pos < l.ilen && (l.current_is_digit() || l.current_is_dash() || l.current_is_letter()) {
+			l.column++
+			id += l.current_str()
+			l.next()
+		}
+	}
+
+	return id
+}
+
+pub fn (mut l Lexer) current_u8() u8 {
+	return u8(l.current())
+}
+
+pub fn (mut l Lexer) current_str() string {
+	return l.current_u8().ascii_str()
+}
+
+pub fn (mut l Lexer) current_is_space() bool {
+	return l.current_u8().is_space()
+}
+
+pub fn (mut l Lexer) current_is_digit() bool {
+	return l.current_u8().is_digit()
+}
+
+pub fn (mut l Lexer) current_is_letter() bool {
+	return l.current_u8().is_letter()
+}
+
+pub fn (mut l Lexer) current_is_new_line() bool {
+	return l.current_u8() == `\n`
+}
+
+pub fn (mut l Lexer) current_is_dot() bool {
+	return l.current_u8() == `.`
+}
+
+pub fn (mut l Lexer) current_is_dash() bool {
+	return l.current_u8() == `-`
+}
+
+pub fn (mut l Lexer) peek_str() string {
+	return l.peek_u8().ascii_str()
+}
+
+pub fn (mut l Lexer) peek_is_space() bool {
+	return l.peek_u8().is_space()
+}
+
+pub fn (mut l Lexer) peek_is_digit() bool {
+	return l.peek_u8().is_digit()
+}
+
+pub fn (mut l Lexer) peek_is_letter() bool {
+	return l.peek_u8().is_letter()
+}
+
+pub fn (mut l Lexer) peek_is_new_line() bool {
+	return l.peek_u8() == `\n`
+}
+
+pub fn (mut l Lexer) emit(type TokenType) Token {
+	return l.emit_lexeme(type, '')
+}
+
+pub fn (mut l Lexer) emit_lexeme(type TokenType, lexeme string) Token {
+	value := if lexeme == '' { type.str() } else { lexeme }
+	pos := new_position(
+		file:   l.file
+		offset: l.pos
+		line:   l.line
+		column: l.column - value.len
+	)
+	return new_token(
+		type:   type
+		lexeme: value
+		pos:    pos
+	)
 }
